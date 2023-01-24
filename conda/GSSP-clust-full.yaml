@@ -1,0 +1,52 @@
+name: GSSP-clust
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base=4.0.5
+  - bioconductor-biobase=2.50.0
+  - bioconductor-biostrings=2.58.0
+  - bioconductor-dada2=1.18.0
+  - r-bookdown=0.26
+  - r-checkmate=2.1.0
+  - r-clustermq=0.8.95.2
+  - r-dplyr=1.0.7
+  - r-eulerr=6.1.1
+  - r-fst=0.9.8
+  - r-gert=1.4.1
+  - r-ggh4x=0.2.0
+  - r-ggplot2=3.3.5
+  - r-here=1.0.1
+  - r-hues=0.2.0
+  - r-igraph=1.2.7
+  - r-kableExtra=1.3.4
+  - r-knitr=1.36
+  - r-magrittr=2.0.1
+  - r-markdown=1.1
+  - r-qs=0.25.3
+  - r-rcpp=1.0.7
+  - r-rcppparallel=5.1.5
+  - r-rcppthread=2.1.3
+  - r-readr=2.0.2
+  - r-readxl=1.3.1
+  - "r-rlang>=1.0.1"
+  - r-rmarkdown=2.11
+  - r-stringr=1.4.0
+  - r-tarchetypes=0.3.2
+  - r-targets=0.8.1
+  - r-tibble=3.1.5
+  - r-tidyr=1.1.4
+  - r-tinytex=0.34
+  - r-vegan=2.5
+  - r-withr=2.4.2
+  - parallel=20211022
+# dependencies for sh_matching
+  - python=3.8
+  - biopython
+  # - usearch can't be packaged
+  - vsearch
+  - itsx=1.1.3
+  - blast-legacy=2.2.26
+  - mothur=1.47.0
+  - krona=2.7.1

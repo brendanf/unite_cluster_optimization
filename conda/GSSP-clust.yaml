@@ -1,0 +1,18 @@
+name: GSSP-clust
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base=4.0.5
+  - r-gert=1.4.1
+  - parallel=20211022
+# dependencies for sh_matching
+  - python=3.8
+  - biopython
+  # - usearch can't be packaged
+  - vsearch=2.14.2
+  - ITSx=1.1.2
+  - blast-legacy=2.2.26
+  - mothur=1.42.1
+  - krona=2.7.1
