@@ -1,5 +1,6 @@
 # test the performance of different clustering thresholds for replicating
 # "true" taxonomic groups.
+library(tarchetypes)
 
 protax_modeldir <- file.path("protaxFungi", "addedmodel")
 
@@ -7,6 +8,67 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
       tar_file(
          protax_refseq_file,
          file.path(protax_modeldir, "its2.fa")
+      ),
+      tar_fst_tbl(
+         protax_refseq_ids,
+         tibble::tibble(
+            id = names(Biostrings::fasta.seqlengths(protax_refseq_file))
+         ) %>%
+            tidyr::separate(
+               id,
+               c("SH", "accno"),
+               sep = "_",
+               remove = FALSE,
+               extra = "merge")
+      ),
+      tar_file(
+         unite_files,
+         list.files("data", "UNITE.+\\.fasta\\.gz", full.names = TRUE)
+      ),
+      tar_file(
+         find_unite_seqs_script,
+         "scripts/find_unite_seqs.awk"
+      ),
+      tar_file(
+         protax_refs_full,
+         {
+            outfile <- "data/protax_refs_full.fasta.gz"
+            command <- paste(
+               "zcat", paste(shQuote(unite_files), collapse = " "), "|",
+               "awk", "-f", shQuote(find_unite_seqs_script),
+               shQuote(protax_refseq_file), "-",
+               "|", "gzip", "-c", "-",
+               paste0(">", shQuote(outfile))
+            )
+            result <- system(command, timeout = 120)
+            stopifnot(result == 0)
+            outfile
+         }
+      ),
+      tar_file(
+         protax_refs_trim1,
+         cutadapt_filter_trim(
+            protax_refs_full,
+            primer = "GCATCGATGAAGAACGCAGC...ACCCGCTGAACTTAAGCATATCAATAAGCGGAGGA",
+            trim = "data/protax_refs_trim1.fasta.gz",
+            discard_untrimmed = TRUE,
+            action = "retain",
+            max_err = 0.3,
+            min_overlap = 8
+         )
+      ),
+      tar_file(
+         protax_refs_trim2,
+         cutadapt_filter_trim(
+            protax_refs_trim1,
+            primer = "XGCATCGATGAAGAACGCAGC...GCATATCAATAAGCGGAGGAX",
+            trim = "data/protax_refs_trim2.fasta",
+            max_err = 0.3
+         )
+      ),
+      tar_fst_tbl(
+         protax_refs_trim2_index,
+         Biostrings::fasta.index(protax_refs_trim2)
       ),
       tar_fst_tbl(
          threshold_meta,
@@ -28,6 +90,7 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
             col_names = c("seq_id", "taxonomy"),
             col_types = "cc"
          ) %>%
+            dplyr::inner_join(protax_refs_trim2_index, by = c("seq_id" = "desc")) %>%
             tidyr::separate(taxonomy, into = TAXRANKS[1:threshold_meta$rank_int], sep = ","),
          pattern = map(threshold_meta, protax_reftax_file),
          iteration = "list"
@@ -47,13 +110,13 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
       tar_target(
          threshold_testset,
          usearch_singlelink(
-            seq = protax_refseq_file,
+            seq = protax_refs_trim2,
             thresh_min = 0,
             thresh_max = 0.4,
             thresh_step = 0.001,
             thresh_names = as.character(1000 - 0:400),
             which = testset_select$seq_id,
-            usearch = "sh_matching_pub/programs/usearch"
+            usearch = "bin/usearch"
          ),
          iteration = "list"
       ),
@@ -98,7 +161,7 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
       tar_file(
          fmeasure_file,
          write_and_return_file(
-            fmeasure_optima, file.path("data", "GSSP_thresholds.tsv"),
+            fmeasure_optima, file.path("data", "protaxFungi_ITS3ITS4_thresholds.tsv"),
             "tsv")
       )
    )
