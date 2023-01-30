@@ -15,7 +15,7 @@
 
 export OMP_STACKSIZE=8096
 export OMP_THREAD_LIMIT=$SLURM_CPUS_ON_NODE
-export PATH="/projappl/project_2003156/its2_taxonomy_first/bin:$PATH"
+export PATH="/projappl/project_2003156/unite_cluster_optimization/bin:$PATH"
 if [[ $1 == "test" ]] ; then
 echo "testing outdated targets..."
 R --vanilla --quiet -e 'targets::tar_outdated(callr_function=NULL)'

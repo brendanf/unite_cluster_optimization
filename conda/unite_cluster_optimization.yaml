@@ -18,10 +18,14 @@ dependencies:
   - r-optimotu=0.1.0
   - r-checkmate=2.1.0
   - r-tidyr=1.1.4
-  - r-rlang=0.4.12
+  - r-rlang=1.0.5
   - r-forcats=0.5.1
   - r-magrittr=2.0.1
   - r-stringr=1.4.0
   - r-hues=0.2.0
   - r-glue=1.4.2
+  - r-targets=0.8.1
+  - r-tarchetypes=0.3.2
+  - r-qs=0.25.3
+  - r-fst=0.9.8
   - cutadapt=4.2
