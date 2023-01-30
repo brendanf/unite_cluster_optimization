@@ -108,6 +108,10 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          pattern = map(threshold_meta, protax_reftax)
       ),
       tar_target(
+         testset_rowwise,
+         testset_select
+      ),
+      tar_target(
          threshold_testset,
          usearch_singlelink(
             seq = protax_refs_trim2,
@@ -141,11 +145,11 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
             tibble::tibble(
                f_measure = .,
                threshold = (1000 - 0:400)/10,
-               rank = testset_select$rank,
-               superrank = testset_select$superrank,
-               supertaxon = testset_select$supertaxon
+               rank = testset_rowwise$rank,
+               superrank = testset_rowwise$superrank,
+               supertaxon = testset_rowwise$supertaxon
             ),
-         pattern = map(testset_select, threshold_testset)
+         pattern = map(testset_rowwise, threshold_testset)
       ),
       tar_fst_tbl(
          fmeasure_optima,
