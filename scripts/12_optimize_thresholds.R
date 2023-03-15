@@ -49,10 +49,11 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          protax_refs_trim1,
          cutadapt_filter_trim(
             protax_refs_full,
-            primer = "GCATCGATGAAGAACGCAGC...ACCCGCTGAACTTAAGCATATCAATAAGCGGAGGA",
+            primer = "GCATCGATGAAGAACGCAGC;required...ACCCGCTGAACTTAAGCATATCAATAAGCGGAGGA;required",
             trim = "data/protax_refs_trim1.fasta.gz",
             discard_untrimmed = TRUE,
             action = "retain",
+            min_length = 185,
             max_err = 0.3,
             min_overlap = 8
          )
@@ -61,8 +62,9 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          protax_refs_trim2,
          cutadapt_filter_trim(
             protax_refs_trim1,
-            primer = "XGCATCGATGAAGAACGCAGC...GCATATCAATAAGCGGAGGAX",
+            primer = "XGCATCGATGAAGAACGCAGC;required...GCATATCAATAAGCGGAGGAX;optional",
             trim = "data/protax_refs_trim2.fasta",
+            min_length = 145,
             max_err = 0.3
          )
       ),
