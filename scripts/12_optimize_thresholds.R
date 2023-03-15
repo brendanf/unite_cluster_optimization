@@ -134,8 +134,8 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
       ),
       tar_fst_tbl(
          fmeasures,
-         protax_reftax[[match(testset_select$rank, TAXRANKS) - 1L]] %>%
-            dplyr::select(seq_id, testset_select$rank) %>%
+         protax_reftax[[match(testset_rowwise$rank, TAXRANKS) - 1L]] %>%
+            dplyr::select(seq_id, testset_rowwise$rank) %>%
             dplyr::mutate(i = match(seq_id, colnames(threshold_testset))) %>%
             dplyr::filter(!is.na(i)) %>%
             {split(.[[3]], .[[2]])} %>%
