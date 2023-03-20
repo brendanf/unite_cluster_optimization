@@ -76,7 +76,8 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          threshold_meta,
          tibble::tibble(
             rank_int = seq_along(TAXRANKS)[-1],
-            rank = TAXRANKS[rank_int]
+            rank = TAXRANKS[rank_int],
+            parent_rank = TAXRANKS[rank_in < 1]
          )
       ),
       tar_file(
@@ -102,7 +103,11 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          purrr::map_dfr(
             superranks(threshold_meta$rank),
             summarize_by_rank,
-            data = protax_reftax,
+            data = dplyr::filter(
+               protax_reftax,
+               !startsWith(!!threshold_meta$rank, "dummy_"),
+               !startsWith(!!threshold_meta$parent_rank, "dummy_")
+            ),
             rank = threshold_meta$rank
          ) %>%
             dplyr::filter(n_taxa >= 5 | superrank == "kingdom", n_seq >= 10),
