@@ -62,7 +62,8 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          protax_refs_trim2,
          cutadapt_filter_trim(
             protax_refs_trim1,
-            primer = "XGCATCGATGAAGAACGCAGC;required...GCATATCAATAAGCGGAGGAX;optional",
+            primer = "XGCATCGATGAAGAACGCAGC;required;o=8...GCATATCAATAAGCGGAGGAX;optional",
+            discard_untrimmed = TRUE,
             trim = "data/protax_refs_trim2.fasta",
             min_length = 145,
             max_err = 0.3
