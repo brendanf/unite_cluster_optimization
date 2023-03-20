@@ -15,6 +15,7 @@
 
 export OMP_STACKSIZE=8096
 export OMP_THREAD_LIMIT=$SLURM_CPUS_ON_NODE
+[ -z $OMP_THREAD_LIMIT ] && export OMP_THREAD_LIMIT=1
 export PATH="/projappl/project_2003156/unite_cluster_optimization/bin:$PATH"
 if [[ $1 == "test" ]] ; then
 echo "testing outdated targets..."
