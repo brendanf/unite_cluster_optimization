@@ -1626,7 +1626,12 @@ read_gsmc_names <- function(x, pos) {
 }
 
 summarize_by_rank <- function(rank, superrank, data) {
-   dplyr::group_by(data, dplyr::across(superrank)) %>%
+   dplyr::filter(
+      data,
+      !startsWith(!!superrank, "dummy_"),
+      !startsWith(!!rank, "dummy_")
+   ) %>%
+   dplyr::group_by(dplyr::across(superrank)) %>%
    dplyr::summarize(
       superrank = superrank,
       rank = rank,
