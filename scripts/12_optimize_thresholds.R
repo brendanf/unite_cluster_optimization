@@ -86,89 +86,113 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          pattern = map(threshold_meta)
       ),
 
-      tar_fst_tbl(
-         protax_reftax,
-         readr::read_tsv(
-            file = protax_reftax_file,
-            col_names = c("seq_id", "taxonomy"),
-            col_types = "cc"
-         ) %>%
-            dplyr::inner_join(protax_refs_trim2_index, by = c("seq_id" = "desc")) %>%
-            tidyr::separate(taxonomy, into = TAXRANKS[1:threshold_meta$rank_int], sep = ","),
-         pattern = map(threshold_meta, protax_reftax_file),
-         iteration = "list"
-      ),
-      tar_target(
-         testset_select,
-         purrr::map_dfr(
-            superranks(threshold_meta$rank),
-            summarize_by_rank,
-            data = protax_reftax,
-            rank = threshold_meta$rank
-         ) %>%
-            dplyr::filter(n_taxa >= 5 | superrank == "kingdom", n_seq >= 10),
-         tidy_eval = FALSE,
-         pattern = map(threshold_meta, protax_reftax)
-      ),
-      tar_target(
-         testset_rowwise,
-         testset_select
-      ),
-      tar_target(
-         threshold_testset,
-         usearch_singlelink(
-            seq = protax_refs_trim2,
-            thresh_min = 0,
-            thresh_max = 0.4,
-            thresh_step = 0.001,
-            thresh_names = as.character(1000 - 0:400),
-            which = testset_select$seq_id,
-            usearch = "bin/usearch"
+      tar_map(
+         values = tibble::tibble(
+            refseq_file = rlang::syms(c(
+               protax_refseq_file, # full database, ITS2 only (cut by ITSx)
+               protax_refseq_file, # same
+               protax_refs_trim2 # only sequences where ITS3ITS4 amplicon region could be found
+            )),
+            refseq_index = rlang::syms(c(
+               protax_refseq_index,
+               protax_refs_trim2_index,
+               protax_refs_trim2_index
+            )),
+            refset_name = c("ITSx_all", "ITSx_match", "ITS3ITS4")
          ),
-         iteration = "list"
-      ),
-      tar_target(
-         threshold_ntaxa,
-         apply(threshold_testset, 1, dplyr::n_distinct),
-         pattern = map(threshold_testset),
-         iteration = "list"
-      ),
-      tar_fst_tbl(
-         fmeasures,
-         protax_reftax[[match(testset_rowwise$rank, TAXRANKS) - 1L]] %>%
-            dplyr::select(seq_id, testset_rowwise$rank) %>%
-            dplyr::mutate(i = match(seq_id, colnames(threshold_testset))) %>%
-            dplyr::filter(!is.na(i)) %>%
-            {split(.[[3]], .[[2]])} %>%
-            optimotu::fmeasure(
-               k = apply(threshold_testset, 1, split, x = seq_len(ncol(threshold_testset))),
-               c = .,
+         names = refset_name,
+
+         tar_fst_tbl(
+            protax_reftax,
+            readr::read_tsv(
+               file = protax_reftax_file,
+               col_names = c("seq_id", "taxonomy"),
+               col_types = "cc"
+            ) %>%
+               dplyr::inner_join(refseq_index, by = c("seq_id" = "desc")) %>%
+               tidyr::separate(taxonomy, into = TAXRANKS[1:threshold_meta$rank_int], sep = ","),
+            pattern = map(threshold_meta, protax_reftax_file),
+            iteration = "list"
+         ),
+         tar_target(
+            testset_select,
+            purrr::map_dfr(
+               superranks(threshold_meta$rank),
+               summarize_by_rank,
+               data = protax_reftax,
+               rank = threshold_meta$rank
+            ) %>%
+               dplyr::filter(n_taxa >= 5 | superrank == "kingdom", n_seq >= 10),
+            tidy_eval = FALSE,
+            pattern = map(threshold_meta, protax_reftax)
+         ),
+         tar_target(
+            testset_rowwise,
+            testset_select
+         ),
+         tar_target(
+            threshold_testset,
+            usearch_singlelink(
+               seq = refseq_file,
+               thresh_min = 0,
+               thresh_max = 0.4,
+               thresh_step = 0.001,
+               thresh_names = as.character(1000 - 0:400),
+               which = testset_select$seq_id,
+               usearch = "bin/usearch"
+            ),
+            iteration = "list"
+         ),
+         tar_target(
+            threshold_ntaxa,
+            apply(threshold_testset, 1, dplyr::n_distinct),
+            pattern = map(threshold_testset),
+            iteration = "list"
+         ),
+         tar_fst_tbl(
+            cluster_metrics,
+            purrr::map(
+               list(
+                  optimotu::confusion_matrix,
+                  optimotu::adjusted_mutual_information,
+                  mFM = optimotu::fmeasure
+               ),
+               k = threshold_testset,
+               c = testset_rowwise$true_taxa,
                ncpu = local_cpus()
             ) %>%
-            tibble::tibble(
-               f_measure = .,
-               threshold = (1000 - 0:400)/10,
-               rank = testset_rowwise$rank,
-               superrank = testset_rowwise$superrank,
-               supertaxon = testset_rowwise$supertaxon
-            ),
-         pattern = map(testset_rowwise, threshold_testset)
-      ),
-      tar_fst_tbl(
-         fmeasure_optima,
-         fmeasures %>%
-            dplyr::group_by(rank, superrank, supertaxon) %>%
-            dplyr::arrange(dplyr::desc(f_measure)) %>%
-            dplyr::summarize(
-               threshold = threshold[which.max(f_measure)],
-               f_measure = max(f_measure),
-               .groups = "drop"
-            )
-      ),
-      tar_file(
-         fmeasure_file,
-         write_and_return_file(
-            fmeasure_optima, file.path("data", "protaxFungi_ITS3ITS4_thresholds.tsv"),
-            "tsv")
+               dplyr::mutate(
+                  MCC = optimotu::matthews_correlation_coefficient(.),
+                  RI = optimotu::rand_index(.),
+                  ARI = optimotu::adjusted_rand_index(.),
+                  FMI = optimotu::fowlkes_mallow_index(.),
+                  threshold = (1000 - 0:400)/10,
+                  rank = testset_rowwise$rank,
+                  superrank = testset_rowwise$superrank,
+                  supertaxon = testset_rowwise$supertaxon
+               ),
+            pattern = map(testset_rowwise, threshold_testset)
+         ),
+         tar_fst_tbl(
+            optima,
+            cluster_metrics %>%
+               tidyr::pivot_longer(
+                  -c(threshold, rank, superrank, supertaxon),
+                  names_to = "metric", values_to = "score"
+               ) %>%
+               dplyr::group_by(rank, superrank, supertaxon, metric) %>%
+               dplyr::arrange(dplyr::desc(score)) %>%
+               dplyr::summarize(
+                  threshold = threshold[which.max(score)],
+                  score = max(score),
+                  .groups = "drop"
+               )
+         ),
+         tar_file(
+            optima_file,
+            write_and_return_file(
+               optima, file.path("data", sprintf("protaxFungi_%s_thresholds.tsv", refset_name)),
+               "tsv")
+         )
       )
    )
