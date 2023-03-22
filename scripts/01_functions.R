@@ -1626,18 +1626,21 @@ read_gsmc_names <- function(x, pos) {
 }
 
 summarize_by_rank <- function(rank, superrank, data) {
+   rank_sym <- as.symbol(rank)
+   superrank_sym <- as.symbol(superrank)
    dplyr::filter(
       data,
       !startsWith(!!superrank, "dummy_"),
       !startsWith(!!rank, "dummy_")
    ) %>%
-   dplyr::group_by(dplyr::across(superrank)) %>%
+   dplyr::group_by(!!superrank_sym) %>%
    dplyr::summarize(
       superrank = superrank,
       rank = rank,
-      n_taxa = dplyr::n_distinct(.data[[rank]]),
+      n_taxa = dplyr::n_distinct(!!rank_sym),
       n_seq = dplyr::n_distinct(seq_id),
-      seq_id = list(seq_id)
+      seq_id = list(seq_id),
+      true_taxa = list(as.integer(factor(!!rank_sym)))
    ) %>%
    dplyr::rename(supertaxon = !!superrank)
 }
