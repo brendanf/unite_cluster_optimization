@@ -23,17 +23,17 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
                extra = "merge"),
          deployment = "main"
       ),
-      tar_file(
+      tar_file_fast(
          unite_files,
          list.files("data", "UNITE.+\\.fasta\\.gz", full.names = TRUE),
          deployment = "main"
       ),
-      tar_file(
+      tar_file_fast(
          find_unite_seqs_script,
          "scripts/find_unite_seqs.awk",
          deployment = "main"
       ),
-      tar_file(
+      tar_file_fast(
          protax_refs_full,
          {
             outfile <- "data/protax_refs_full.fasta.gz"
@@ -50,7 +50,7 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          },
          deployment = "main"
       ),
-      tar_file(
+      tar_file_fast(
          protax_refs_trim1,
          cutadapt_filter_trim(
             protax_refs_full,
@@ -64,7 +64,7 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          ),
          deployment = "main"
       ),
-      tar_file(
+      tar_file_fast(
          protax_refs_trim2,
          cutadapt_filter_trim(
             protax_refs_trim1,
@@ -89,7 +89,7 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          ),
          deployment = "main"
       ),
-      tar_file(
+      tar_file_fast(
          protax_reftax_file,
          file.path(protax_modeldir, sprintf("ref.tax%d", threshold_meta$rank_int)),
          pattern = map(threshold_meta),
@@ -204,7 +204,7 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
                ),
             deployment = "main"
          ),
-         tar_file(
+         tar_file_fast(
             optima_file,
             write_and_return_file(
                optima, file.path("data", sprintf("protaxFungi_%s_thresholds.tsv", refset_name)),
