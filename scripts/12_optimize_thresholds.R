@@ -7,7 +7,8 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
    threshold_test_plan <- list(
       tar_file(
          protax_refseq_file,
-         file.path(protax_modeldir, "its2.fa")
+         file.path(protax_modeldir, "its2.fa"),
+         deployment = "main"
       ),
       tar_fst_tbl(
          protax_refseq_ids,
@@ -19,15 +20,18 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
                c("SH", "accno"),
                sep = "_",
                remove = FALSE,
-               extra = "merge")
+               extra = "merge"),
+         deployment = "main"
       ),
       tar_file(
          unite_files,
-         list.files("data", "UNITE.+\\.fasta\\.gz", full.names = TRUE)
+         list.files("data", "UNITE.+\\.fasta\\.gz", full.names = TRUE),
+         deployment = "main"
       ),
       tar_file(
          find_unite_seqs_script,
-         "scripts/find_unite_seqs.awk"
+         "scripts/find_unite_seqs.awk",
+         deployment = "main"
       ),
       tar_file(
          protax_refs_full,
@@ -43,7 +47,8 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
             result <- system(command, timeout = 120)
             stopifnot(result == 0)
             outfile
-         }
+         },
+         deployment = "main"
       ),
       tar_file(
          protax_refs_trim1,
@@ -56,7 +61,8 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
             min_length = 185,
             max_err = 0.3,
             min_overlap = 8
-         )
+         ),
+         deployment = "main"
       ),
       tar_file(
          protax_refs_trim2,
@@ -67,25 +73,28 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
             trim = "data/protax_refs_trim2.fasta",
             min_length = 145,
             max_err = 0.3
-         )
+         ),
+         deployment = "main"
       ),
       tar_fst_tbl(
          protax_refs_trim2_index,
-         Biostrings::fasta.index(protax_refs_trim2)
+         Biostrings::fasta.index(protax_refs_trim2),
+         deployment = "main"
       ),
       tar_fst_tbl(
          threshold_meta,
          tibble::tibble(
             rank_int = seq_along(TAXRANKS)[-1],
             rank = TAXRANKS[rank_int]
-         )
+         ),
+         deployment = "main"
       ),
       tar_file(
          protax_reftax_file,
          file.path(protax_modeldir, sprintf("ref.tax%d", threshold_meta$rank_int)),
-         pattern = map(threshold_meta)
+         pattern = map(threshold_meta),
+         deployment = "main"
       ),
-
       tar_map(
          values = tibble::tibble(
             refseq_file = rlang::syms(c(
@@ -112,7 +121,8 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
                dplyr::inner_join(refseq_index, by = c("seq_id" = "desc")) %>%
                tidyr::separate(taxonomy, into = TAXRANKS[1:threshold_meta$rank_int], sep = ","),
             pattern = map(threshold_meta, protax_reftax_file),
-            iteration = "list"
+            iteration = "list",
+            deployment = "main"
          ),
          tar_target(
             testset_select,
@@ -124,11 +134,13 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
             ) %>%
                dplyr::filter(n_taxa >= 5 | superrank == "kingdom", n_seq >= 10),
             tidy_eval = FALSE,
-            pattern = map(threshold_meta, protax_reftax)
+            pattern = map(threshold_meta, protax_reftax),
+            deployment = "main"
          ),
          tar_target(
             testset_rowwise,
-            testset_select
+            testset_select,
+            deployment = "main"
          ),
          tar_target(
             threshold_testset,
@@ -141,13 +153,15 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
                which = testset_select$seq_id,
                usearch = "bin/usearch"
             ),
-            iteration = "list"
+            iteration = "list",
+            deployment = "worker"
          ),
          tar_target(
             threshold_ntaxa,
             apply(threshold_testset, 1, dplyr::n_distinct),
             pattern = map(threshold_testset),
-            iteration = "list"
+            iteration = "list",
+            deployment = "worker"
          ),
          tar_fst_tbl(
             cluster_metrics,
@@ -171,7 +185,8 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
                   superrank = testset_rowwise$superrank,
                   supertaxon = testset_rowwise$supertaxon
                ),
-            pattern = map(testset_rowwise, threshold_testset)
+            pattern = map(testset_rowwise, threshold_testset),
+            deployment = "worker"
          ),
          tar_fst_tbl(
             optima,
@@ -186,13 +201,15 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
                   threshold = threshold[which.max(score)],
                   score = max(score),
                   .groups = "drop"
-               )
+               ),
+            deployment = "main"
          ),
          tar_file(
             optima_file,
             write_and_return_file(
                optima, file.path("data", sprintf("protaxFungi_%s_thresholds.tsv", refset_name)),
-               "tsv")
+               "tsv"),
+            deployment = "main"
          )
       )
    )
