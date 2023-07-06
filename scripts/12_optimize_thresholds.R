@@ -45,9 +45,9 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
             command <- paste(
                "zcat", paste(shQuote(unite_files), collapse = " "), "|",
                "awk", "-f", shQuote(find_unite_seqs_script),
-               shQuote(protax_refseq_file), "-",
-               "|", "gzip", "-c", "-",
-               paste0(">", shQuote(outfile))
+               shQuote(protax_refseq_file), "-", "|",
+               "gzip", "-c", "-",
+               ">", shQuote(outfile)
             )
             result <- system(command, timeout = 120)
             stopifnot(result == 0)
