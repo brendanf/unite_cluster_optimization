@@ -24,3 +24,5 @@ sh_matching_pub/data
 sh_matching_pub/outdata
 sh_matching_pub/programs
 sh_matching_pub/*.sif
+slurm-*.out
+worker-*.out
