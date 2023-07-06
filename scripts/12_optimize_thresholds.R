@@ -144,14 +144,19 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          ),
          tar_target(
             threshold_testset,
-            usearch_singlelink(
+            optimotu::seq_cluster_usearch(
                seq = refseq_file,
-               thresh_min = 0,
-               thresh_max = 0.4,
-               thresh_step = 0.001,
-               thresh_names = as.character(1000 - 0:400),
+               threshold_config = optimotu::threshold_uniform(
+                  from = 0,
+                  to = 0.4,
+                  by = 0.001,
+                  thresh_names = as.character(1000 - 0:400)
+               ),
+               clust_config = optimotu::clust_tree(),
+               parallel_config = optimotu::parallel_concurrent(local_cpus()%/%2.5),
                which = testset_select$seq_id,
-               usearch = "bin/usearch"
+               usearch = "bin/usearch",
+               usearch_ncpu = local_cpus()
             ),
             iteration = "list",
             deployment = "worker"
