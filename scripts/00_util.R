@@ -14,7 +14,7 @@ local_cpus <- function() {
       snakemake@threads
    } else if (is_slurm()) {
       out <- as.integer(Sys.getenv("SLURM_JOB_CPUS_PER_NODE"))
-      assertthat::assert_that(assertthat::is.count(out))
+      if(!assertthat::is.count(out)) out <- 1L
       out
    } else {
       max(parallel::detectCores() - 1, 1)
