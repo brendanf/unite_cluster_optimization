@@ -8,10 +8,10 @@
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 8
 #SBATCH --nodes 1
-#SBATCH --mem 64G
-#SBATCH --time 48:00:00
+#SBATCH --mem 96G
+#SBATCH --time 36:00:00
 #SBATCH --mail-type ALL
-##SBATCH --gres=nvme:100
+#SBATCH --gres=nvme:100
 
 export OMP_STACKSIZE=8096
 export OMP_THREAD_LIMIT=$SLURM_CPUS_ON_NODE
