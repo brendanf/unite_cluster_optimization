@@ -11,6 +11,11 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          deployment = "main"
       ),
       tar_fst_tbl(
+         protax_refseq_index,
+         Biostrings::fasta.index(protax_refseq_file),
+         deployment = "main"
+      ),
+      tar_fst_tbl(
          protax_refseq_ids,
          tibble::tibble(
             id = names(Biostrings::fasta.seqlengths(protax_refseq_file))
@@ -81,6 +86,44 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          Biostrings::fasta.index(protax_refs_trim2),
          deployment = "main"
       ),
+      tar_file_fast(
+         protax_refs_itsx,
+         {
+            unzipped <- tempfile(fileext=".fasta")
+            system(paste("gunzip -c", protax_refs_full, ">", unzipped))
+            out_root <- "data/protax_refs"
+            rITSx::itsx(
+               in_file = unzipped,
+               out_root = out_root,
+               fasta = FALSE,
+               preserve = TRUE,
+               save_regions = "ITS2",
+               complement = FALSE,
+               positions = FALSE,
+               table = FALSE,
+               summary = FALSE,
+               graphical = FALSE,
+               detailed_results = FALSE,
+               only_full = TRUE,
+               cpu = local_cpus()
+            )
+            f <- paste0(out_root, ".ITS2.fasta")
+            system2("gzip", f)
+            paste0(f, ".gz")
+         },
+         deployment = "worker"
+      ),
+      tar_fst_tbl(
+         protax_refs_itsx_index,
+         Biostrings::fasta.index(protax_refs_itsx),
+         deployment = "main"
+      ),
+      tar_fst_tbl(
+         protax_refs_itsx_match_index,
+         dplyr::semi_join(protax_refs_itsx_index, protax_refs_trim2_index, by = "desc"),
+         deployment = "main"
+      ),
+
       tar_fst_tbl(
          threshold_meta,
          tibble::tibble(
@@ -98,16 +141,18 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
       tar_map(
          values = tibble::tibble(
             refseq_file = rlang::syms(c(
-               protax_refseq_file, # full database, ITS2 only (cut by ITSx)
-               protax_refseq_file, # same
-               protax_refs_trim2 # only sequences where ITS3ITS4 amplicon region could be found
+               "protax_refs_itsx", # full ITS2 only (cut by ITSx)
+               "protax_refs_itsx", # same
+               "protax_refs_trim2",# only sequences where ITS3ITS4 amplicon region could be found
+               "protax_refs_trim2" # same
             )),
             refseq_index = rlang::syms(c(
-               protax_refseq_index,
-               protax_refs_trim2_index,
-               protax_refs_trim2_index
+               "protax_refs_itsx_index", # all ITSx sequences
+               "protax_refs_itsx_match_index", # sequences found by both ITSx and ITS3ITS4 primer trimming
+               "protax_refs_itsx_match_index", # sequences found by both ITSx and ITS3ITS4 primer trimming
+               "protax_refs_trim2_index" # ITS3ITS4 sequences
             )),
-            refset_name = c("ITSx_all", "ITSx_match", "ITS3ITS4")
+            refset_name = c("ITSx_all", "ITSx_match", "ITS3ITS4_match", "ITS3ITS4")
          ),
          names = refset_name,
 
