@@ -208,34 +208,42 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          ),
          tar_target(
             threshold_ntaxa,
-            apply(threshold_testset, 1, dplyr::n_distinct),
-            pattern = map(threshold_testset),
-            iteration = "list",
+            lapply(threshold_testset, apply, 1, dplyr::n_distinct) |>
+               lapply(tibble::enframe, name = "threshold", value = "ntaxa") |>
+               tibble::add_column(testset_rowwise, ntaxa = _) |>
+               dplyr::select(supertaxon, superrank, rank, ntaxa) |>
+               tidyr::unnest(ntaxa),
             deployment = "worker"
          ),
          tar_fst_tbl(
             cluster_metrics,
-            purrr::map(
-               list(
-                  optimotu::confusion_matrix,
-                  optimotu::adjusted_mutual_information,
-                  mFM = optimotu::fmeasure
-               ),
-               k = threshold_testset,
-               c = testset_rowwise$true_taxa,
-               ncpu = local_cpus()
-            ) %>%
-               dplyr::mutate(
-                  MCC = optimotu::matthews_correlation_coefficient(.),
-                  RI = optimotu::rand_index(.),
-                  ARI = optimotu::adjusted_rand_index(.),
-                  FMI = optimotu::fowlkes_mallow_index(.),
-                  threshold = (1000 - 0:400)/10,
-                  rank = testset_rowwise$rank,
-                  superrank = testset_rowwise$superrank,
-                  supertaxon = testset_rowwise$supertaxon
-               ),
-            pattern = map(testset_rowwise, threshold_testset),
+            purrr::map_dfr(
+               seq_along(threshold_testset),
+               function(i) {
+                  purrr::map_dfc(
+                     .x = list(
+                        optimotu::confusion_matrix,
+                        optimotu::adjusted_mutual_information,
+                        mFM = optimotu::fmeasure
+                     ),
+                     .f = purrr::exec,
+                     k = threshold_testset[[i]],
+                     c = testset_rowwise$true_taxa[[i]],
+                     local_cpus()
+                  ) |>
+                     tibble::remove_rownames() %>%
+                     dplyr::mutate(
+                        MCC = optimotu::matthews_correlation_coefficient(.),
+                        RI = optimotu::rand_index(.),
+                        ARI = optimotu::adjusted_rand_index(.),
+                        FMI = optimotu::fowlkes_mallow_index(.),
+                        threshold = (1000 - 0:400)/10,
+                        rank = testset_rowwise$rank[i],
+                        superrank = testset_rowwise$superrank[i],
+                        supertaxon = testset_rowwise$supertaxon[i]
+                     )
+               }
+            ),
             deployment = "worker"
          ),
          tar_fst_tbl(
