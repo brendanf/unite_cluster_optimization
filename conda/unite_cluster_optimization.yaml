@@ -30,5 +30,7 @@ dependencies:
   - r-fst=0.9.8
   - r-clustermq=0.8.95.5
   - r-ritsx=0.0.5
+  - r-inferrnal=0.99.5
+  - bioconductor-rfarm=1.10.0
   - cutadapt=4.2
   - itsx=1.1.3
