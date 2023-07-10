@@ -124,6 +124,53 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
          deployment = "main"
       ),
 
+      tar_file_fast(
+         rfam_5.8S,
+         {
+            cmfile <- "data/RF00002.cm"
+            rfaRm::rfamCovarianceModel("RF00002", cmfile)
+            cmfile
+         },
+         deployment = "main"
+      ),
+
+      tar_fst_tbl(
+         protax_refs_5.8S_positions,
+         inferrnal::cmsearch(
+            cm = rfam_5.8S,
+            seq = protax_refs_trim2,
+            cpu = local_cpus(),
+            quiet = TRUE
+         ) |>
+            dplyr::rename(desc = target_name),
+         deployment = "worker"
+      ),
+
+      tar_file_fast(
+         protax_refs_5.8S,
+         Biostrings::readDNAStringSet(protax_refs_trim2) |>
+            magrittr::extract(protax_refs_5.8S_positions$desc) |>
+            Biostrings::subseq(
+               start = protax_refs_5.8S_positions$seq_from,
+               end = protax_refs_5.8S_positions$seq_to
+            ) |>
+            write_and_return_file("data/protax_refs_5.8S.fasta"),
+         deployment = "worker"
+      ),
+      tar_fst_tbl(
+         protax_refs_match_index,
+         dplyr::semi_join(
+            protax_refs_itsx_index,
+            protax_refs_trim2_index,
+            by = "desc"
+         ) |>
+            dplyr::semi_join(
+               protax_refs_5.8S_positions,
+               by = "desc"
+            ),
+         deployment = "main"
+      ),
+
       tar_fst_tbl(
          threshold_meta,
          tibble::tibble(
@@ -143,16 +190,20 @@ protax_modeldir <- file.path("protaxFungi", "addedmodel")
             refseq_file = rlang::syms(c(
                "protax_refs_itsx", # full ITS2 only (cut by ITSx)
                "protax_refs_itsx", # same
+               "protax_refs_5.8S", # (partial) 5.8S
+               "protax_refs_5.8S", # same
                "protax_refs_trim2",# only sequences where ITS3ITS4 amplicon region could be found
                "protax_refs_trim2" # same
             )),
             refseq_index = rlang::syms(c(
                "protax_refs_itsx_index", # all ITSx sequences
-               "protax_refs_itsx_match_index", # sequences found by both ITSx and ITS3ITS4 primer trimming
-               "protax_refs_itsx_match_index", # sequences found by both ITSx and ITS3ITS4 primer trimming
-               "protax_refs_trim2_index" # ITS3ITS4 sequences
+               "protax_refs_5.8S_match_index", # sequences found by ITSx, ITS3ITS4 primer trimming, and search for the 5.8S CM
+               "protax_refs_5.8S_index", # all 5.8S sequences
+               "protax_refs_5.8S_match_index", # sequences found by ITSx, ITS3ITS4 primer trimming, and search for the 5.8S CM
+               "protax_refs_trim2_index", # ITS3ITS4 sequences
+               "protax_refs_5.8S_match_index" # sequences found by ITSx, ITS3ITS4 primer trimming, and search for the 5.8S CM
             )),
-            refset_name = c("ITSx_all", "ITSx_match", "ITS3ITS4_match", "ITS3ITS4")
+            refset_name = c("ITSx_all", "ITSx_match", "5.8S_all", "5.8S_match", "ITS3ITS4_match", "ITS3ITS4")
          ),
          names = refset_name,
 
